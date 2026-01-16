@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, FolderGit2, Trash2, ArrowRight } from 'lucide-react';
+import { Plus, FolderGit2, Trash2, ArrowRight, Users, UserCheck } from 'lucide-react';
 import { projectService } from '../services/projectService';
 
 export default function Dashboard() {
@@ -20,7 +20,7 @@ export default function Dashboard() {
       setProjects(data);
     } catch (error) {
       console.error("Erro ao carregar:", error);
-      alert("Erro ao conectar com o Django. Verifique se o servidor está rodando.");
+      // alert("Erro ao conectar com o Django."); // Comentado para não atrapalhar se o server cair
     } finally {
       setLoading(false);
     }
@@ -37,22 +37,79 @@ export default function Dashboard() {
       });
       setShowModal(false);
       setNewProjectName('');
-      loadProjects(); // Recarrega a lista
+      loadProjects(); 
     } catch (error) {
       alert("Erro ao criar projeto");
     }
   }
 
   async function handleDelete(id, e) {
-    e.preventDefault(); // Evita entrar no link ao clicar em deletar
+    e.preventDefault();
     if (confirm("Tem certeza que quer apagar este projeto?")) {
       await projectService.delete(id);
       loadProjects();
     }
   }
 
+  // Filtragem dos Projetos
+  const myProjects = projects.filter(p => p.is_dono);
+  const sharedProjects = projects.filter(p => !p.is_dono);
+
+  // Componente Interno do Card para evitar repetição de código
+  const ProjectCard = ({ project, isShared }) => (
+    <Link 
+      to={`/projeto/${project.id}`} 
+      className={`
+        group p-6 rounded-xl border shadow-sm transition-all relative flex flex-col justify-between h-48
+        ${isShared 
+          ? 'bg-purple-50 border-purple-100 hover:border-purple-300' 
+          : 'bg-white border-gray-200 hover:border-indigo-300 hover:shadow-md'}
+      `}
+    >
+      <div>
+        <div className="flex justify-between items-start mb-3">
+          <div className={`p-2 rounded-lg transition-colors ${isShared ? 'bg-purple-200 text-purple-700' : 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'}`}>
+            {isShared ? <Users size={20} /> : <FolderGit2 size={20} />}
+          </div>
+          
+          {/* Badge de Membros */}
+          <div className="flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
+            <Users size={12} /> {project.total_membros || 1}
+          </div>
+        </div>
+        
+        <h3 className="text-lg font-bold text-gray-800 leading-tight mb-1">{project.titulo}</h3>
+        
+        {/* Descrição ou Nome do Dono */}
+        {isShared ? (
+           <p className="text-xs text-purple-600 mb-2">Dono: {project.nome_dono}</p>
+        ) : (
+           <p className="text-gray-500 text-sm mb-4 line-clamp-2">{project.descricao || "Sem descrição"}</p>
+        )}
+      </div>
+      
+      <div className="flex justify-between items-end mt-auto">
+        <div className={`flex items-center text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isShared ? 'text-purple-600' : 'text-indigo-600'}`}>
+           Abrir <ArrowRight size={16} className="ml-1" />
+        </div>
+
+        {/* Só mostra lixeira se for MEU projeto */}
+        {!isShared && (
+           <button 
+             onClick={(e) => handleDelete(project.id, e)}
+             className="text-gray-300 hover:text-red-500 transition-colors p-1"
+             title="Apagar Projeto"
+           >
+             <Trash2 size={18} />
+           </button>
+        )}
+      </div>
+    </Link>
+  );
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
+      {/* Cabeçalho */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Meus Projetos</h1>
@@ -70,50 +127,46 @@ export default function Dashboard() {
       {loading ? (
         <div className="text-center py-10 text-gray-500">Carregando projetos...</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Card de Cada Projeto */}
-          {projects.map((project) => (
-            <Link 
-              to={`/projeto/${project.id}`} 
-              key={project.id}
-              className="group bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all relative"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                  <FolderGit2 size={24} />
+        <div className="space-y-12">
+          
+          {/* SEÇÃO 1: Meus Projetos */}
+          <section>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {myProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} isShared={false} />
+              ))}
+              
+              {/* Estado Vazio (Só mostra se não tiver nenhum projeto próprio) */}
+              {myProjects.length === 0 && (
+                <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+                  <p className="text-gray-500 mb-4">Você ainda não tem projetos.</p>
+                  <button onClick={() => setShowModal(true)} className="text-indigo-600 font-semibold hover:underline">
+                    Comece criando um agora
+                  </button>
                 </div>
-                <button 
-                  onClick={(e) => handleDelete(project.id, e)}
-                  className="text-gray-400 hover:text-red-500 p-1 rounded-md hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-              
-              <h3 className="text-xl font-bold text-gray-800 mb-2">{project.titulo}</h3>
-              <p className="text-gray-500 text-sm mb-4 line-clamp-2">
-                {project.descricao || "Sem descrição"}
-              </p>
-              
-              <div className="flex items-center text-indigo-600 text-sm font-medium group-hover:underline">
-                Abrir Board <ArrowRight size={16} className="ml-1" />
-              </div>
-            </Link>
-          ))}
-
-          {/* Estado Vazio */}
-          {projects.length === 0 && (
-            <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
-              <p className="text-gray-500 mb-4">Nenhum projeto encontrado.</p>
-              <button onClick={() => setShowModal(true)} className="text-indigo-600 font-semibold hover:underline">
-                Crie seu primeiro projeto agora
-              </button>
+              )}
             </div>
+          </section>
+
+          {/* SEÇÃO 2: Projetos Compartilhados (Só aparece se existir algum) */}
+          {sharedProjects.length > 0 && (
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2 border-b border-gray-200 pb-2">
+                <UserCheck size={24} className="text-purple-600"/> 
+                Compartilhados Comigo
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sharedProjects.map((project) => (
+                  <ProjectCard key={project.id} project={project} isShared={true} />
+                ))}
+              </div>
+            </section>
           )}
+
         </div>
       )}
 
-      {/* Modal Simples de Criação */}
+      {/* Modal de Criação */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
           <form onSubmit={handleCreate} className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md animate-in fade-in zoom-in duration-200">

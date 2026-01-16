@@ -7,6 +7,7 @@ class Projeto(models.Model):
     Pode ser arquivado para sair da dashboard principal.
     """
     dono = models.ForeignKey(User, on_delete=models.CASCADE)
+    membros = models.ManyToManyField(User, related_name='projetos_participados', blank=True)
     titulo = models.CharField(max_length=100)
     descricao = models.TextField(blank=True, verbose_name="Descrição")
     
