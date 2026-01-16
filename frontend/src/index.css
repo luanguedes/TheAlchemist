@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gray-50 text-gray-900;
+  /* Isso garante aquele fundo cinza bem clarinho e profissional em todo o app */
+}
