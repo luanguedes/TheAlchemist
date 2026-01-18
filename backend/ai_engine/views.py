@@ -48,16 +48,20 @@ class RunAIActionView(APIView):
         )
         
         # MODELO ATUALIZADO
-        model = genai.GenerativeModel('gemini-1.5-flash', generation_config=generation_config)
-        
+        model = genai.GenerativeModel('gemini-2.5-flash', generation_config=generation_config)        
         # 4. Monta o prompt (Persona + Tarefa)
         full_prompt = (
-            f"--- PERSONA / INSTRUÇÃO DO SISTEMA ---\n"
+            f"--- PERSONA / AGENTE ---\n"
             f"{agente.prompt_sistema}\n\n"
-            f"--- TAREFA DO USUÁRIO (CARD) ---\n"
-            f"Título: {card.titulo}\n"
-            f"Detalhes: {card.conteudo_original}\n\n"
-            f"--- SUA RESPOSTA ---"
+            f"--- DADOS DO USUÁRIO (Contexto Real) ---\n"
+            f"Título Principal: {card.titulo}\n"
+            f"Descrição Detalhada/Input: {card.conteudo_original}\n\n"
+            f"--- INSTRUÇÕES DE SAÍDA ---\n"
+            f"1. Analise o Título E a Descrição Detalhada para compor sua resposta.\n"
+            f"2. IMPORTANTE: Entregue APENAS o resultado final (o prompt refinado, o código, ou o texto solicitado).\n"
+            f"3. NÃO inclua 'Persona', 'Contexto', 'Objetivo' ou explicações sobre sua estrutura lógica.\n"
+            f"4. Quero apenas o texto pronto para ser copiado e usado.\n\n"
+            f"--- SUA RESPOSTA FINAL ---"
         )
 
         try:

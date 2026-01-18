@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Bot, Clock, Sparkles, Trash2, Save } from 'lucide-react';
+import { X, Bot, Clock, Sparkles, Trash2, Save } from 'lucide-react';
 import { projectService } from '../services/projectService';
 import { aiService } from '../services/aiService';
 import toast from 'react-hot-toast';
@@ -7,9 +7,7 @@ import toast from 'react-hot-toast';
 export default function CardModal({ isOpen, onClose, cardData, columns, onSave, onDelete }) {
   if (!isOpen) return null;
 
-  // Se cardData tem ID, é Edição. Se não, é Criação.
-  const isEditing = !!cardData?.id;
-
+  // Estado Local para controlar os dados do formulário
   const [formData, setFormData] = useState({
     titulo: '',
     conteudo_original: '',
@@ -17,6 +15,10 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
     coluna: ''
   });
 
+  // Estado para controlar o ID do card atual (seja vindo do pai ou criado agora)
+  const [currentCardId, setCurrentCardId] = useState(null);
+  
+  // Estados da IA
   const [agents, setAgents] = useState([]);
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [aiResult, setAiResult] = useState('');
@@ -26,16 +28,20 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
   useEffect(() => {
     if (isOpen) {
       loadAgents();
+      
+      // Se veio um cardData (Edição), usa ele. Se não (Criação), limpa.
+      setCurrentCardId(cardData?.id || null);
+      
       setFormData({
         titulo: cardData?.titulo || '',
         conteudo_original: cardData?.conteudo_original || '',
-        // Corta para YYYY-MM-DDTHH:mm
         prazo: cardData?.prazo ? cardData.prazo.slice(0, 16) : '', 
-        coluna: cardData?.coluna || cardData?.columnId || '' // Pega a coluna do card ou a coluna clicada no Kanban
+        coluna: cardData?.coluna || cardData?.columnId || columns?.[0]?.id || ''
       });
+      
       setAiResult(cardData?.prompt_refinado || '');
     }
-  }, [isOpen, cardData]);
+  }, [isOpen, cardData]); // Dependências corrigidas
 
   async function loadAgents() {
     try {
@@ -50,32 +56,44 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
 
     const payload = {
         ...formData,
-        prazo: formData.prazo || null // Envia null se vazio
+        prazo: formData.prazo || null
     };
 
     try {
-      if (isEditing) {
-        await projectService.updateCard(cardData.id, payload);
+      let savedCard;
+      
+      if (currentCardId) {
+        // EDIÇÃO
+        savedCard = await projectService.updateCard(currentCardId, payload);
         toast.success("Card atualizado!");
       } else {
-        await projectService.createCard(formData.coluna, payload);
-        toast.success("Card criado!");
+        // CRIAÇÃO
+        savedCard = await projectService.createCard(formData.coluna, payload);
+        setCurrentCardId(savedCard.id); // <--- O PULO DO GATO: Atualiza o ID localmente
+        toast.success("Card criado! IA habilitada.");
       }
-      onSave(); // Fecha e recarrega
+
+      // Chama a função do pai apenas para atualizar o Kanban no fundo, SEM FECHAR
+      onSave(); 
+
     } catch (error) {
       toast.error("Erro ao salvar.");
     }
   }
 
   async function handleGenerateAI() {
-    if (!isEditing) return toast.error("Salve o card primeiro para usar a IA.");
+    // Agora verifica o currentCardId, que é atualizado logo após criar
+    if (!currentCardId) return toast.error("Salve o card primeiro para usar a IA.");
+    
     setIsGenerating(true);
     try {
-      const response = await projectService.refineCard(cardData.id, selectedAgentId);
-      setAiResult(response.prompt_refinado);
+      // Chama o endpoint correto via service atualizado
+      const response = await projectService.refineCard(currentCardId, selectedAgentId);
+      setAiResult(response.result); // O backend retorna { result: "texto..." }
       toast.success("Sugestão gerada!");
     } catch (error) {
-      toast.error("Erro na IA: " + (error.response?.data?.error || "Desconhecido"));
+      console.error(error);
+      toast.error("Erro na IA. Verifique o console.");
     } finally {
       setIsGenerating(false);
     }
@@ -84,6 +102,9 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
   // Cor do Header
   const currentColumn = columns?.find(c => c.id === parseInt(formData.coluna));
   const headerColor = currentColumn?.cor || '#F1F5F9';
+
+  // Verifica se está em modo de edição (tem ID)
+  const isEditing = !!currentCardId;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in zoom-in duration-200">
@@ -154,11 +175,14 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
               className="w-full py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2"
             >
               <Save size={18} />
-              {isEditing ? 'Salvar Alterações' : 'Criar Tarefa'}
+              {isEditing ? 'Salvar Alterações' : 'Salvar (Habilita IA)'}
             </button>
 
             {/* CARD DA IA */}
-            <div className={`bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl p-5 border border-indigo-100 dark:border-indigo-900/50 ${!isEditing ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+            <div className={`
+                bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl p-5 border border-indigo-100 dark:border-indigo-900/50 transition-opacity duration-300
+                ${!isEditing ? 'opacity-50 pointer-events-none' : 'opacity-100'}
+            `}>
               <h3 className="text-indigo-900 dark:text-indigo-300 font-bold flex items-center gap-2 mb-4 text-sm">
                 <Bot size={18} /> TheAlchemist IA
               </h3>
@@ -185,8 +209,9 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
                 </button>
               </div>
 
+              {/* ÁREA DE RESULTADO (SEMPRE RENDERIZADA, MAS CONDICIONAL VISUALMENTE) */}
               {aiResult && (
-                <div className="mt-4 pt-4 border-t border-indigo-200 dark:border-indigo-800">
+                <div className="mt-4 pt-4 border-t border-indigo-200 dark:border-indigo-800 animate-in slide-in-from-top-2">
                   <div className="flex justify-between items-center mb-2">
                      <span className="text-[10px] font-bold text-indigo-500 uppercase">Resultado</span>
                   </div>
@@ -197,13 +222,13 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
               )}
               
               {!isEditing && (
-                 <p className="text-xs text-center text-indigo-400 mt-2 font-medium">Salve para habilitar a IA</p>
+                 <p className="text-xs text-center text-indigo-400 mt-2 font-medium">Salve para habilitar</p>
               )}
             </div>
 
-            {/* BOTÃO DE EXCLUIR (Lógica solicitada) */}
+            {/* BOTÃO DE EXCLUIR */}
             <button 
-              onClick={() => isEditing && onDelete(cardData.id)} 
+              onClick={() => isEditing && onDelete(currentCardId)} 
               disabled={!isEditing}
               className={`
                 w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all
@@ -211,7 +236,6 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
                     ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer' 
                     : 'text-gray-300 dark:text-gray-600 bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-70'}
               `}
-              title={!isEditing ? "Salve o card primeiro para poder excluir" : "Excluir card"}
             >
               <Trash2 size={18} />
               Excluir Card

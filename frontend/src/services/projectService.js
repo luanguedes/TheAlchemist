@@ -73,7 +73,11 @@ export const projectService = {
   
   // Atualize o refine para aceitar agente
   refineCard: async (cardId, agenteId) => {
-    const response = await api.post(`cards/${cardId}/refinar/`, { agente_id: agenteId });
+    // Agora chamamos /ai/run/ enviando o ID do card e do agente
+    const response = await api.post('ai/run/', { 
+      card_id: cardId, 
+      agente_id: agenteId 
+    });
     return response.data;
-  }
+  },
 };
