@@ -35,14 +35,18 @@ export const projectService = {
   },
 
   // --- CARDS ---
-  createCard: async (colunaId, conteudo) => {
-    const response = await api.post('cards/', { 
-      coluna: colunaId, 
-      conteudo_original: conteudo 
-    });
+  createCard: async (colunaId, dataOrContent) => {
+    // Se for string (antigo), converte. Se for objeto (novo), usa direto.
+    let payload = {};
+    if (typeof dataOrContent === 'string') {
+        payload = { coluna: colunaId, conteudo_original: dataOrContent, titulo: dataOrContent };
+    } else {
+        payload = { ...dataOrContent, coluna: colunaId };
+    }
+    
+    const response = await api.post('cards/', payload);
     return response.data;
   },
-
   deleteCard: async (id) => {
     await api.delete(`cards/${id}/`);
   },
@@ -57,8 +61,19 @@ export const projectService = {
 
   // --- IA (TheAlchemist) ---
   // ADICIONADO AGORA: Essa função chama a rota de IA que criamos no backend
-  refineCard: async (cardId) => {
-    const response = await api.post(`cards/${cardId}/refinar/`);
+  updateCard: async (id, data) => {
+    const response = await api.patch(`cards/${id}/`, data); // <--- MUDOU DE .put PARA .patch
+    return response.data;
+  },
+
+  updateColumn: async (id, data) => {
+    const response = await api.patch(`colunas/${id}/`, data); // <--- MUDOU DE .put PARA .patch
+    return response.data;
+  },
+  
+  // Atualize o refine para aceitar agente
+  refineCard: async (cardId, agenteId) => {
+    const response = await api.post(`cards/${cardId}/refinar/`, { agente_id: agenteId });
     return response.data;
   }
 };

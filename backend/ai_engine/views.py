@@ -5,10 +5,10 @@ from django.shortcuts import get_object_or_404
 from django.conf import settings
 import google.generativeai as genai
 
-# Importar modelos corretos
+# Importar modelos
 from projetos.models import Card
-from .models import AgenteIA  # <--- Nome correto
-from .serializers import AgenteIASerializer # <--- Serializer correto
+from .models import AgenteIA
+from .serializers import AgenteIASerializer
 
 # Configuração Inicial do Gemini
 if hasattr(settings, 'GEMINI_API_KEY') and settings.GEMINI_API_KEY:
@@ -30,7 +30,7 @@ class RunAIActionView(APIView):
             )
 
         card_id = request.data.get('card_id')
-        agente_id = request.data.get('agente_id') # Usamos o ID agora
+        agente_id = request.data.get('agente_id')
 
         if not card_id or not agente_id:
             return Response(
@@ -46,14 +46,17 @@ class RunAIActionView(APIView):
         generation_config = genai.types.GenerationConfig(
             temperature=agente.temperatura
         )
-        model = genai.GenerativeModel('gemini-pro', generation_config=generation_config)
+        
+        # MODELO ATUALIZADO
+        model = genai.GenerativeModel('gemini-1.5-flash', generation_config=generation_config)
         
         # 4. Monta o prompt (Persona + Tarefa)
         full_prompt = (
             f"--- PERSONA / INSTRUÇÃO DO SISTEMA ---\n"
             f"{agente.prompt_sistema}\n\n"
             f"--- TAREFA DO USUÁRIO (CARD) ---\n"
-            f"{card.conteudo_original}\n\n"
+            f"Título: {card.titulo}\n"
+            f"Detalhes: {card.conteudo_original}\n\n"
             f"--- SUA RESPOSTA ---"
         )
 
@@ -63,8 +66,7 @@ class RunAIActionView(APIView):
             ai_text = response.text
 
             # 6. Lógica de Salvamento Inteligente
-            # Se o agente for um "Refinador" ou "Arquiteto", salvamos no banco para persistir
-            # (Verificamos se o nome do agente contém palavras-chave)
+            # Se o agente for um "Refinador", "Arquiteto" ou "Engenheiro", salvamos o resultado
             nome_agente = agente.nome.lower()
             if "refinador" in nome_agente or "arquiteto" in nome_agente or "engenheiro" in nome_agente:
                 card.prompt_refinado = ai_text
@@ -76,6 +78,7 @@ class RunAIActionView(APIView):
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
+            print(f"ERRO GEMINI: {str(e)}") # Log no terminal para ajudar no debug
             return Response(
                 {"error": f"Erro na execução da IA: {str(e)}"}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

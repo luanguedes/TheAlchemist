@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, FolderGit2, Trash2, ArrowRight, Users, UserCheck } from 'lucide-react';
 import { projectService } from '../services/projectService';
-import AgentsModal from '../components/AgentsModal';
 
 export default function Dashboard() {
   const [projects, setProjects] = useState([]);

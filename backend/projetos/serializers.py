@@ -4,14 +4,24 @@ from .models import Projeto, Coluna, Card
 class CardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Card
-        fields = '__all__' # Garante que 'coluna' seja aceito na criação
+        # Listamos explicitamente para garantir que os novos campos venham na API
+        fields = [
+            'id', 
+            'titulo',            # Novo campo
+            'conteudo_original', 
+            'prompt_refinado', 
+            'ordem', 
+            'prazo',             # Novo campo
+            'coluna', 
+            'criado_em'
+        ]
 
 class ColunaSerializer(serializers.ModelSerializer):
     cards = CardSerializer(many=True, read_only=True)
     class Meta:
         model = Coluna
-        # ADICIONADO 'projeto' AQUI EMBAIXO:
-        fields = ['id', 'titulo', 'ordem', 'cards', 'projeto']
+        # Adicionado 'cor' na lista de campos
+        fields = ['id', 'titulo', 'ordem', 'cor', 'cards', 'projeto']
 
 class ProjetoSerializer(serializers.ModelSerializer):
     colunas = ColunaSerializer(many=True, read_only=True)
