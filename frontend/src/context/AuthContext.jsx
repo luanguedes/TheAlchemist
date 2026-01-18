@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
-import api from '../services/api';
-import axios from 'axios'; // Importe axios direto para a chamada de login inicial
+import api from '../services/api'; 
+// Removi o 'axios' daqui porque vamos usar só o 'api' que já está configurado
 
 export const AuthContext = createContext();
 
@@ -9,35 +9,47 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Ao iniciar, verifica se tem token salvo
-    const token = localStorage.getItem('token');
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // Aqui poderíamos chamar uma rota /me para pegar dados do user, 
-      // mas por enquanto vamos assumir que está logado.
-      setUser({ token }); 
-    }
-    setLoading(false);
+    const recoverUser = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        // Configura o token nas requisições
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        // Mantemos o usuário na sessão
+        setUser({ token });
+      }
+      
+      setLoading(false);
+    };
+
+    recoverUser();
   }, []);
 
   const login = async (username, password) => {
-    // Chama a rota que criamos no Django
-    const response = await axios.post('http://127.0.0.1:8000/api/token/', {
-      username,
-      password
-    });
+    try {
+        // CORREÇÃO AQUI: Usamos 'api.post' sem a URL completa.
+        // Ele vai pegar o IP (192.168.137.1) que configuramos no services/api.js
+        const response = await api.post('token/', {
+          username,
+          password
+        });
 
-    if (response.data.access) {
-      const token = response.data.access;
-      localStorage.setItem('token', token);
-      
-      // Configura o axios para enviar esse token em todas as próximas requisições
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
-      setUser({ username, token });
-      return true;
+        if (response.data.access) {
+          const token = response.data.access;
+          localStorage.setItem('token', token);
+          
+          // Configura o token para as próximas chamadas
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          setUser({ username, token });
+          return true;
+        }
+        return false;
+    } catch (error) {
+        console.error("Erro de Login:", error);
+        return false;
     }
-    return false;
   };
 
   const logout = () => {

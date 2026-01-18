@@ -1,14 +1,20 @@
 from django.db import models
 
-class ActionTemplate(models.Model):
-    name = models.CharField(max_length=50, verbose_name="Nome do Modo")
-    slug = models.SlugField(unique=True, help_text="Identificador unico (ex: bug-hunter)")
-    description = models.CharField(max_length=200, verbose_name="Descrição Curta")
+class AgenteIA(models.Model):
+    """
+    Define uma 'persona' para a IA.
+    Ex: 'Engenheiro de Prompt', 'Crítico de Ideias', 'Gerador de Código'.
+    """
+    nome = models.CharField(max_length=100)
+    descricao = models.CharField(max_length=200, help_text="Breve descrição do que ele faz")
     
-    # O segredo está aqui: Você edita como a IA deve se comportar
-    system_instruction = models.TextField(verbose_name="Prompt do Sistema (Instrução)")
+    # O 'System Prompt' que define a personalidade
+    prompt_sistema = models.TextField(help_text="Ex: 'Você é um especialista em React. Critique o código...'")
     
-    active = models.BooleanField(default=True)
+    # Criatividade (0.0 a 1.0)
+    temperatura = models.FloatField(default=0.7)
+    
+    criado_em = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return self.nome

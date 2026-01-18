@@ -1,62 +1,90 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, viewsets # <--- O viewsets foi adicionado aqui
+from rest_framework import status, viewsets, permissions
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 import google.generativeai as genai
 
-# Importar modelos
+# Importar modelos corretos
 from projetos.models import Card
-from .models import ActionTemplate
-from .serializers import ActionTemplateSerializer
+from .models import AgenteIA  # <--- Nome correto
+from .serializers import AgenteIASerializer # <--- Serializer correto
 
-# Configurar Gemini (Pegando do settings)
-# Se der erro aqui, certifique-se que GEMINI_API_KEY está no .env e no settings.py
-if settings.GEMINI_API_KEY:
+# Configuração Inicial do Gemini
+if hasattr(settings, 'GEMINI_API_KEY') and settings.GEMINI_API_KEY:
     genai.configure(api_key=settings.GEMINI_API_KEY)
 
 class RunAIActionView(APIView):
     """
-    Recebe: { "card_id": 1, "template_slug": "bug-hunter" }
-    Retorna: { "result": "Texto gerado pela IA..." }
+    Executa um Agente de IA em um card específico.
+    Recebe: { "card_id": 1, "agente_id": 3 }
     """
-    
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request):
+        # 1. Validação da API Key
+        if not getattr(settings, 'GEMINI_API_KEY', None):
+            return Response(
+                {"error": "API Key do Gemini não configurada no servidor (.env)."}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
         card_id = request.data.get('card_id')
-        template_slug = request.data.get('template_slug')
+        agente_id = request.data.get('agente_id') # Usamos o ID agora
 
-        # 1. Busca os dados no banco
+        if not card_id or not agente_id:
+            return Response(
+                {"error": "Parâmetros 'card_id' e 'agente_id' são obrigatórios."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. Busca os dados no banco
         card = get_object_or_404(Card, id=card_id)
-        template = get_object_or_404(ActionTemplate, slug=template_slug)
+        agente = get_object_or_404(AgenteIA, id=agente_id)
 
-        # 2. Prepara o prompt
-        model = genai.GenerativeModel('gemini-pro')
+        # 3. Prepara o modelo com a temperatura do agente
+        generation_config = genai.types.GenerationConfig(
+            temperature=agente.temperatura
+        )
+        model = genai.GenerativeModel('gemini-pro', generation_config=generation_config)
         
+        # 4. Monta o prompt (Persona + Tarefa)
         full_prompt = (
-            f"CONTEXTO DO SISTEMA: {template.system_instruction}\n\n"
-            f"DADO DO USUÁRIO (CARD): {card.conteudo_original}\n\n"
-            f"RESPOSTA:"
+            f"--- PERSONA / INSTRUÇÃO DO SISTEMA ---\n"
+            f"{agente.prompt_sistema}\n\n"
+            f"--- TAREFA DO USUÁRIO (CARD) ---\n"
+            f"{card.conteudo_original}\n\n"
+            f"--- SUA RESPOSTA ---"
         )
 
         try:
-            # 3. Chama a IA
+            # 5. Chama a IA
             response = model.generate_content(full_prompt)
             ai_text = response.text
 
-            # 4. (Opcional) Salva no card se for refinamento
-            if template_slug == 'refinador-tecnico':
+            # 6. Lógica de Salvamento Inteligente
+            # Se o agente for um "Refinador" ou "Arquiteto", salvamos no banco para persistir
+            # (Verificamos se o nome do agente contém palavras-chave)
+            nome_agente = agente.nome.lower()
+            if "refinador" in nome_agente or "arquiteto" in nome_agente or "engenheiro" in nome_agente:
                 card.prompt_refinado = ai_text
                 card.save()
 
-            return Response({"result": ai_text}, status=status.HTTP_200_OK)
+            return Response({
+                "result": ai_text,
+                "agente_usado": agente.nome
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": f"Erro na execução da IA: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-# Esta classe deve ficar FORA da anterior (sem indentação na esquerda)
-class ActionTemplateViewSet(viewsets.ModelViewSet):
+class AgenteIAViewSet(viewsets.ModelViewSet):
     """
-    Permite listar, criar e editar os 'Agentes' (Prompts) pelo Frontend.
+    CRUD para gerenciar os Agentes (Personas) pelo Frontend.
     """
-    queryset = ActionTemplate.objects.all()
-    serializer_class = ActionTemplateSerializer
+    queryset = AgenteIA.objects.all()
+    serializer_class = AgenteIASerializer
+    permission_classes = [permissions.IsAuthenticated]
