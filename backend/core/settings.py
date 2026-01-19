@@ -144,7 +144,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
-    "thealchemist.up.railway.app"   
+    "https://thealchemist.up.railway.app"
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://thealchemist-backend.up.railway.app", 
 ]
 
 # Configuração do Rest Framework
