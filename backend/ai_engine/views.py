@@ -3,16 +3,15 @@ from rest_framework.response import Response
 from rest_framework import status, viewsets, permissions
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-import google.generativeai as genai
+
+# --- NOVA BIBLIOTECA DO GOOGLE (2026) ---
+from google import genai
+from google.genai import types
 
 # Importar modelos
 from projetos.models import Card
 from .models import AgenteIA
 from .serializers import AgenteIASerializer
-
-# Configuração Inicial do Gemini
-if hasattr(settings, 'GEMINI_API_KEY') and settings.GEMINI_API_KEY:
-    genai.configure(api_key=settings.GEMINI_API_KEY)
 
 class RunAIActionView(APIView):
     """
@@ -23,7 +22,8 @@ class RunAIActionView(APIView):
 
     def post(self, request):
         # 1. Validação da API Key
-        if not getattr(settings, 'GEMINI_API_KEY', None):
+        api_key = getattr(settings, 'GEMINI_API_KEY', None)
+        if not api_key:
             return Response(
                 {"error": "API Key do Gemini não configurada no servidor (.env)."}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -42,14 +42,7 @@ class RunAIActionView(APIView):
         card = get_object_or_404(Card, id=card_id)
         agente = get_object_or_404(AgenteIA, id=agente_id)
 
-        # 3. Prepara o modelo com a temperatura do agente
-        generation_config = genai.types.GenerationConfig(
-            temperature=agente.temperatura
-        )
-        
-        # MODELO ATUALIZADO
-        model = genai.GenerativeModel('gemini-2.5-flash', generation_config=generation_config)        
-        # 4. Monta o prompt (Persona + Tarefa)
+        # 3. Monta o prompt (Persona + Tarefa)
         full_prompt = (
             f"--- PERSONA / AGENTE ---\n"
             f"{agente.prompt_sistema}\n\n"
@@ -65,14 +58,23 @@ class RunAIActionView(APIView):
         )
 
         try:
+            # 4. Configura o Cliente (Nova Sintaxe)
+            client = genai.Client(api_key=api_key)
+
             # 5. Chama a IA
-            response = model.generate_content(full_prompt)
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    temperature=agente.temperatura
+                )
+            )
+            
             ai_text = response.text
 
             # 6. Lógica de Salvamento Inteligente
-            # Se o agente for um "Refinador", "Arquiteto" ou "Engenheiro", salvamos o resultado
             nome_agente = agente.nome.lower()
-            if "refinador" in nome_agente or "arquiteto" in nome_agente or "engenheiro" in nome_agente:
+            if any(x in nome_agente for x in ["refinador", "arquiteto", "engenheiro"]):
                 card.prompt_refinado = ai_text
                 card.save()
 
@@ -82,7 +84,7 @@ class RunAIActionView(APIView):
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            print(f"ERRO GEMINI: {str(e)}") # Log no terminal para ajudar no debug
+            print(f"ERRO GEMINI: {str(e)}") 
             return Response(
                 {"error": f"Erro na execução da IA: {str(e)}"}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
