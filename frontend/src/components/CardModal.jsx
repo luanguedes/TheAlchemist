@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Bot, Clock, Sparkles, Trash2, Save } from 'lucide-react';
+import { X, Bot, Clock, Sparkles, Trash2, Save, Copy, Check } from 'lucide-react'; // <--- Importei Copy e Check
 import { projectService } from '../services/projectService';
 import { aiService } from '../services/aiService';
 import toast from 'react-hot-toast';
@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 export default function CardModal({ isOpen, onClose, cardData, columns, onSave, onDelete }) {
   if (!isOpen) return null;
 
-  // Estado Local para controlar os dados do formulário
+  // Estados
   const [formData, setFormData] = useState({
     titulo: '',
     conteudo_original: '',
@@ -15,21 +15,19 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
     coluna: ''
   });
 
-  // Estado para controlar o ID do card atual (seja vindo do pai ou criado agora)
   const [currentCardId, setCurrentCardId] = useState(null);
   
-  // Estados da IA
+  // IA States
   const [agents, setAgents] = useState([]);
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [aiResult, setAiResult] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCopied, setIsCopied] = useState(false); // Estado para feedback visual do copiar
 
-  // Carrega dados ao abrir
+  // Carregar dados
   useEffect(() => {
     if (isOpen) {
       loadAgents();
-      
-      // Se veio um cardData (Edição), usa ele. Se não (Criação), limpa.
       setCurrentCardId(cardData?.id || null);
       
       setFormData({
@@ -40,8 +38,9 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
       });
       
       setAiResult(cardData?.prompt_refinado || '');
+      setIsCopied(false);
     }
-  }, [isOpen, cardData]); // Dependências corrigidas
+  }, [isOpen, cardData]);
 
   async function loadAgents() {
     try {
@@ -51,59 +50,69 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
     } catch (e) { console.error(e); }
   }
 
-  async function handleSave() {
-    if (!formData.titulo.trim()) return toast.error("O título é obrigatório");
+  // Função auxiliar de salvar (usada pelo botão e pela IA)
+  async function performSave() {
+    if (!formData.titulo.trim()) {
+        toast.error("O título é obrigatório");
+        return null;
+    }
 
-    const payload = {
-        ...formData,
-        prazo: formData.prazo || null
-    };
+    const payload = { ...formData, prazo: formData.prazo || null };
 
     try {
       let savedCard;
-      
       if (currentCardId) {
-        // EDIÇÃO
         savedCard = await projectService.updateCard(currentCardId, payload);
-        toast.success("Card atualizado!");
       } else {
-        // CRIAÇÃO
         savedCard = await projectService.createCard(formData.coluna, payload);
-        setCurrentCardId(savedCard.id); // <--- O PULO DO GATO: Atualiza o ID localmente
-        toast.success("Card criado! IA habilitada.");
+        setCurrentCardId(savedCard.id);
       }
-
-      // Chama a função do pai apenas para atualizar o Kanban no fundo, SEM FECHAR
-      onSave(); 
-
+      onSave(); // Atualiza o Kanban no fundo
+      return savedCard.id; // Retorna o ID para uso
     } catch (error) {
       toast.error("Erro ao salvar.");
+      return null;
     }
   }
 
+  // Botão Salvar da UI
+  async function handleManualSave() {
+    const id = await performSave();
+    if (id) toast.success(currentCardId ? "Card atualizado!" : "Card criado!");
+  }
+
+  // Botão Gerar IA
   async function handleGenerateAI() {
-    // Agora verifica o currentCardId, que é atualizado logo após criar
-    if (!currentCardId) return toast.error("Salve o card primeiro para usar a IA.");
+    // 1. FORÇA O SALVAMENTO ANTES DE GERAR
+    // Isso garante que o backend leia a descrição que você acabou de digitar
+    const activeId = await performSave(); 
+    
+    if (!activeId) return; // Se falhou ao salvar, para aqui
     
     setIsGenerating(true);
     try {
-      // Chama o endpoint correto via service atualizado
-      const response = await projectService.refineCard(currentCardId, selectedAgentId);
-      setAiResult(response.result); // O backend retorna { result: "texto..." }
+      const response = await projectService.refineCard(activeId, selectedAgentId);
+      setAiResult(response.result);
       toast.success("Sugestão gerada!");
     } catch (error) {
       console.error(error);
-      toast.error("Erro na IA. Verifique o console.");
+      toast.error("Erro na IA.");
     } finally {
       setIsGenerating(false);
     }
   }
 
-  // Cor do Header
+  // Função de Copiar
+  function handleCopy() {
+    if (!aiResult) return;
+    navigator.clipboard.writeText(aiResult);
+    setIsCopied(true);
+    toast.success("Copiado para área de transferência!");
+    setTimeout(() => setIsCopied(false), 2000);
+  }
+
   const currentColumn = columns?.find(c => c.id === parseInt(formData.coluna));
   const headerColor = currentColumn?.cor || '#F1F5F9';
-
-  // Verifica se está em modo de edição (tem ID)
   const isEditing = !!currentCardId;
 
   return (
@@ -119,9 +128,7 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
               onChange={(e) => setFormData({...formData, coluna: parseInt(e.target.value)})}
               className="bg-white/50 px-3 py-1 rounded-full text-sm font-semibold text-gray-900 border-none outline-none cursor-pointer hover:bg-white/80 transition-colors"
             >
-              {columns?.map(col => (
-                <option key={col.id} value={col.id}>{col.titulo}</option>
-              ))}
+              {columns?.map(col => <option key={col.id} value={col.id}>{col.titulo}</option>)}
             </select>
           </div>
           <button onClick={onClose} className="p-2 bg-white/50 hover:bg-white rounded-full transition-colors text-gray-800">
@@ -171,7 +178,7 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
           <div className="w-full md:w-80 space-y-6 md:pl-8 md:border-l border-gray-100 dark:border-gray-700">
             
             <button 
-              onClick={handleSave} 
+              onClick={handleManualSave} 
               className="w-full py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2"
             >
               <Save size={18} />
@@ -201,7 +208,7 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
 
                 <button 
                   onClick={handleGenerateAI}
-                  disabled={isGenerating || !isEditing}
+                  disabled={isGenerating} // Removido !isEditing pois o save automático resolve
                   className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-200 dark:shadow-none"
                 >
                   {isGenerating ? <Sparkles className="animate-spin" size={16} /> : <Sparkles size={16} />}
@@ -209,24 +216,28 @@ export default function CardModal({ isOpen, onClose, cardData, columns, onSave, 
                 </button>
               </div>
 
-              {/* ÁREA DE RESULTADO (SEMPRE RENDERIZADA, MAS CONDICIONAL VISUALMENTE) */}
+              {/* RESULTADO + BOTÃO COPIAR */}
               {aiResult && (
-                <div className="mt-4 pt-4 border-t border-indigo-200 dark:border-indigo-800 animate-in slide-in-from-top-2">
+                <div className="mt-4 pt-4 border-t border-indigo-200 dark:border-indigo-800 animate-in slide-in-from-top-2 relative">
                   <div className="flex justify-between items-center mb-2">
                      <span className="text-[10px] font-bold text-indigo-500 uppercase">Resultado</span>
+                     
+                     {/* BOTÃO COPIAR AQUI */}
+                     <button 
+                        onClick={handleCopy}
+                        className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-700 hover:bg-indigo-100 px-2 py-1 rounded transition-colors"
+                     >
+                        {isCopied ? <Check size={12} /> : <Copy size={12} />}
+                        {isCopied ? 'Copiado!' : 'Copiar'}
+                     </button>
                   </div>
                   <div className="bg-white dark:bg-gray-800 p-3 rounded-lg text-xs text-gray-600 dark:text-gray-300 max-h-40 overflow-y-auto border border-indigo-50 dark:border-indigo-900 custom-scrollbar">
                     <pre className="whitespace-pre-wrap font-sans">{aiResult}</pre>
                   </div>
                 </div>
               )}
-              
-              {!isEditing && (
-                 <p className="text-xs text-center text-indigo-400 mt-2 font-medium">Salve para habilitar</p>
-              )}
             </div>
 
-            {/* BOTÃO DE EXCLUIR */}
             <button 
               onClick={() => isEditing && onDelete(currentCardId)} 
               disabled={!isEditing}

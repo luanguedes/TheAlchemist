@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, MoreHorizontal, Clock, AlertCircle, Sparkles, Trash2, X, GripVertical } from 'lucide-react';
+import { ArrowLeft, Plus, MoreHorizontal, Clock, AlertCircle, Sparkles, Trash2, X } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { projectService } from '../services/projectService';
 import CardModal from '../components/CardModal';
@@ -33,12 +33,11 @@ export default function Kanban() {
     } catch (e) { toast.error("Erro ao carregar."); } finally { setLoading(false); }
   }
 
-  // --- HANDLERS AUXILIARES ---
+  // --- HANDLERS ---
   function handleOpenCreate(columnId) { setModalData({ columnId: columnId }); }
   function handleOpenEdit(card) { setModalData(card); }
   function requestDelete(e, type, id, title) { e.stopPropagation(); setItemToDelete({ type, id, title }); }
 
-  // --- NOVA COLUNA ---
   async function handleAddColumn(e) {
     e.preventDefault();
     if (!newColumnTitle.trim()) return;
@@ -50,7 +49,6 @@ export default function Kanban() {
     } catch (e) { toast.error("Erro ao criar lista."); }
   }
 
-  // --- EXCLUSÃO ---
   async function confirmDelete() {
     if (!itemToDelete) return;
     try {
@@ -67,7 +65,6 @@ export default function Kanban() {
     finally { setItemToDelete(null); }
   }
 
-  // --- COR E PRAZO ---
   async function handleChangeColor(columnId, newColor) {
     const updatedCols = project.colunas.map(c => c.id === columnId ? {...c, cor: newColor} : c);
     setProject({...project, colunas: updatedCols});
@@ -84,50 +81,55 @@ export default function Kanban() {
     return { color: 'text-gray-500', bg: 'bg-gray-200/50', icon: <Clock size={14} />, label: formattedDate };
   }
 
-  // --- DRAG AND DROP (AGORA COM COLUNAS) ---
+  // --- DRAG AND DROP (CORRIGIDO COM PREFIXOS) ---
   const onDragEnd = async (result) => {
     const { destination, source, draggableId, type } = result;
 
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-    // 1. REORDENAR COLUNAS (HORIZONTAL)
+    // Removemos os prefixos 'col-' ou 'card-' para pegar o ID real
+    const realDraggableId = parseInt(draggableId.split('-')[1]); 
+    
+    // 1. REORDENAR COLUNAS
     if (type === 'COLUMN') {
         const newColunas = [...project.colunas];
         const [removed] = newColunas.splice(source.index, 1);
         newColunas.splice(destination.index, 0, removed);
-
-        // Atualiza estado visualmente
         setProject({ ...project, colunas: newColunas });
 
-        // Salva no backend (atualiza a ordem da coluna movida)
         try {
-            await projectService.updateColumn(draggableId, { ordem: destination.index });
-            // Idealmente, atualizariamos todas as ordens, mas para MVP isso resolve visualmente até o reload
-        } catch (e) {
-            toast.error("Erro ao mover coluna");
-        }
+            await projectService.updateColumn(realDraggableId, { ordem: destination.index });
+        } catch (e) { toast.error("Erro ao mover coluna"); }
         return;
     }
 
-    // 2. REORDENAR CARDS (VERTICAL)
+    // 2. REORDENAR CARDS
     if (type === 'CARD') {
         const newProject = { ...project, colunas: [...project.colunas] };
-        const sourceColIndex = newProject.colunas.findIndex(c => c.id.toString() === source.droppableId);
-        const destColIndex = newProject.colunas.findIndex(c => c.id.toString() === destination.droppableId);
+        
+        // Remove prefixo 'list-' para pegar o ID da coluna
+        const sourceColId = parseInt(source.droppableId.split('-')[1]);
+        const destColId = parseInt(destination.droppableId.split('-')[1]);
+
+        const sourceColIndex = newProject.colunas.findIndex(c => c.id === sourceColId);
+        const destColIndex = newProject.colunas.findIndex(c => c.id === destColId);
 
         const sourceCol = { ...newProject.colunas[sourceColIndex], cards: [...newProject.colunas[sourceColIndex].cards] };
         const destCol = sourceColIndex === destColIndex ? sourceCol : { ...newProject.colunas[destColIndex], cards: [...newProject.colunas[destColIndex].cards] };
 
         const [movedCard] = sourceCol.cards.splice(source.index, 1);
-        movedCard.coluna = parseInt(destination.droppableId);
+        
+        // Atualiza o ID da coluna no objeto local
+        movedCard.coluna = destColId;
+        
         destCol.cards.splice(destination.index, 0, movedCard);
 
         newProject.colunas[sourceColIndex] = sourceCol;
         newProject.colunas[destColIndex] = destCol;
         setProject(newProject);
 
-        try { await projectService.moveCard(draggableId, destination.droppableId, destination.index); } 
+        try { await projectService.moveCard(realDraggableId, destColId, destination.index); } 
         catch (error) { loadProject(); }
     }
   };
@@ -146,7 +148,7 @@ export default function Kanban() {
       </header>
 
       <DragDropContext onDragEnd={onDragEnd}>
-        {/* DROPPABLE PARENT PARA AS COLUNAS (Horizontal) */}
+        {/* DROPPABLE DAS COLUNAS */}
         <Droppable droppableId="board" type="COLUMN" direction="horizontal">
           {(provided) => (
             <div 
@@ -157,18 +159,22 @@ export default function Kanban() {
               <div className="flex h-full gap-6">
                 
                 {project?.colunas.map((coluna, index) => (
-                  <Draggable key={coluna.id} draggableId={coluna.id.toString()} index={index}>
+                  // PREFIXO 'col-' PARA ID DA COLUNA
+                  <Draggable key={coluna.id} draggableId={`col-${coluna.id}`} index={index}>
                     {(provided) => (
                       <div 
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         className="w-80 flex-shrink-0 flex flex-col rounded-2xl max-h-full transition-colors duration-500 border border-transparent dark:border-gray-800 bg-white"
-                        style={{ backgroundColor: coluna.cor || '#F1F5F9' }}
+                        style={{ 
+                            ...provided.draggableProps.style,
+                            backgroundColor: coluna.cor || '#F1F5F9' 
+                        }}
                       >
                         
-                        {/* Header da Coluna (Handle do Drag) */}
+                        {/* HANDLE DO DRAG */}
                         <div 
-                            {...provided.dragHandleProps} // Aqui torna o header "arrastável"
+                            {...provided.dragHandleProps} 
                             className="p-4 flex justify-between items-center relative group/header cursor-grab active:cursor-grabbing"
                         >
                           <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wider flex items-center gap-2">
@@ -187,14 +193,15 @@ export default function Kanban() {
                           </div>
                         </div>
 
-                        {/* Área dos Cards (Droppable Vertical) */}
-                        <Droppable droppableId={coluna.id.toString()} type="CARD">
+                        {/* PREFIXO 'list-' PARA ID DA LISTA DE CARDS */}
+                        <Droppable droppableId={`list-${coluna.id}`} type="CARD">
                           {(provided) => (
                             <div ref={provided.innerRef} {...provided.droppableProps} className="flex-1 overflow-y-auto px-3 pb-3 custom-scrollbar min-h-[100px]">
                               {coluna.cards.map((card, index) => {
                                 const deadline = getDeadlineStyle(card.prazo);
                                 return (
-                                  <Draggable key={card.id} draggableId={card.id.toString()} index={index}>
+                                  // PREFIXO 'card-' PARA ID DO CARD
+                                  <Draggable key={card.id} draggableId={`card-${card.id}`} index={index}>
                                     {(provided) => (
                                       <div 
                                         ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} 
@@ -226,7 +233,6 @@ export default function Kanban() {
                 
                 {provided.placeholder}
 
-                {/* --- CRIAR NOVA LISTA --- */}
                 <div className="w-80 shrink-0">
                    {isAddingColumn ? (
                      <form onSubmit={handleAddColumn} className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-lg border border-indigo-100 animate-in fade-in slide-in-from-right-4">
@@ -253,8 +259,8 @@ export default function Kanban() {
         isOpen={!!modalData}
         cardData={modalData}
         columns={project?.colunas}
-        onClose={() => setModalData(null)} // Só fecha aqui (botão X)
-        onSave={() => loadProject()}       // Apenas recarrega o fundo, NÃO FECHA MAIS
+        onClose={() => setModalData(null)}
+        onSave={() => loadProject()}
         onDelete={(id) => requestDelete({stopPropagation:()=>{}}, 'card', id)}
       />
 
