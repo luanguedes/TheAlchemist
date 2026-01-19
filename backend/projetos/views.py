@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.db.models import Q
 from django.db import transaction
+from django.db.models import Max
 from .models import Projeto, Coluna, Card
 from .serializers import ProjetoSerializer, ColunaSerializer, CardSerializer
 
@@ -35,6 +36,20 @@ class CardViewSet(viewsets.ModelViewSet):
     serializer_class = CardSerializer
     permission_classes = [permissions.IsAuthenticated]
     queryset = Card.objects.all()
+
+    def perform_create(self, serializer):
+        coluna_id = self.request.data.get('coluna')
+        
+        # 1. Busca qual é o maior número de 'ordem' que já existe nessa coluna
+        # O aggregate retorna algo tipo: {'ordem__max': 5}
+        maior_ordem_atual = Card.objects.filter(coluna_id=coluna_id).aggregate(Max('ordem'))['ordem__max']
+        
+        # 2. Se não tiver nenhum card (None), a ordem é 1.
+        # Se tiver (ex: 5), a nova ordem será 6.
+        nova_ordem = (maior_ordem_atual if maior_ordem_atual is not None else 0) + 1
+        
+        # 3. Salva o card com essa nova ordem calculada
+        serializer.save(ordem=nova_ordem)
 
     def get_queryset(self):
         # Filtra apenas cards dos projetos que o usuário participa

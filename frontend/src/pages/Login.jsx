@@ -1,7 +1,7 @@
-import { useState, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { useState } from 'react'; // Removi useContext, não precisa mais
+import { useAuth } from '../context/AuthContext'; // <--- IMPORTANTE: Importa o Hook
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowRight, Lock, User, Layers } from 'lucide-react'; // Adicionei Layers
+import { Sparkles, ArrowRight, Lock, User, Layers } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -9,7 +9,9 @@ export default function Login() {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const { login } = useContext(AuthContext);
+  // USANDO O HOOK AQUI
+  const { login } = useAuth(); 
+  
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -44,7 +46,7 @@ export default function Login() {
 
         <div className="relative z-10 text-white max-w-lg">
           
-          {/* LOGO NO TOPO - Adicionado conforme pedido */}
+          {/* LOGO NO TOPO */}
           <div className="flex items-center gap-3 mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
             <div className="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm border border-white/20 shadow-lg">
                <Layers size={28} className="text-white" />
@@ -53,10 +55,10 @@ export default function Login() {
           </div>
 
           <h1 className="text-5xl font-bold mb-6 leading-tight">
-            Transmute idéias em <span className="text-indigo-200">realidade.</span>
+            Transmute ideias em <span className="text-indigo-200">realidade.</span>
           </h1>
           <p className="text-indigo-100 text-lg leading-relaxed mb-8">
-            Gerencie projetos, refine requisitos com IA e organize seu fluxo de trabalho em um único lugar. O TheAlchemist é a sua forja de idéias.
+            Gerencie projetos, refine requisitos com IA e organize seu fluxo de trabalho em um único lugar. O TheAlchemist é a sua forja de ideias.
           </p>
           
           <div className="flex gap-4 text-sm font-medium text-indigo-200 border-t border-indigo-500/30 pt-8">
@@ -74,7 +76,7 @@ export default function Login() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-24 bg-gray-50 dark:bg-gray-900">
         <div className="w-full max-w-md space-y-8">
           
-          {/* Cabeçalho Mobile (Só aparece se tela for pequena) */}
+          {/* Cabeçalho Mobile */}
           <div className="lg:hidden flex items-center gap-2 mb-8">
              <div className="bg-indigo-600 p-2 rounded-lg">
                <Layers size={24} className="text-white" />

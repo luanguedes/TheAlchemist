@@ -1,19 +1,24 @@
 import { BrowserRouter, Routes, Route, Link, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useContext, useState, useEffect } from 'react';
-import { LayoutDashboard, Settings as SettingsIcon, Layers, LogOut, Menu, X } from 'lucide-react'; // Renomeei o ícone Settings para SettingsIcon para não conflitar
+import { useState, useEffect } from 'react'; // Removi useContext daqui
+import { LayoutDashboard, Settings as SettingsIcon, Layers, LogOut, Menu, X } from 'lucide-react'; 
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider, AuthContext } from './context/AuthContext';
+
+// 1. IMPORTAÇÃO CORRIGIDA (Troquei AuthContext por useAuth)
+import { AuthProvider, useAuth } from './context/AuthContext'; 
+
 import ThemeToggle from './components/ThemeToggle';
 
 // Páginas
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Kanban from './pages/Kanban';
-import SettingsPage from './pages/Settings'; // <--- IMPORT DA NOVA PÁGINA
+import SettingsPage from './pages/Settings'; 
 
 // Layout com Sidebar Responsiva
 const PrivateLayout = () => {
-  const { authenticated, loading, logout } = useContext(AuthContext);
+  // 2. USO CORRIGIDO (Usando o Hook em vez do Contexto direto)
+  const { authenticated, loading, logout } = useAuth(); 
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
@@ -77,7 +82,7 @@ const PrivateLayout = () => {
             <Menu size={24} />
           </button>
           <span className="font-bold text-gray-700 dark:text-white flex items-center gap-2">
-             <Layers size={20} className="text-indigo-600 dark:text-indigo-400"/> TheAlchemist
+              <Layers size={20} className="text-indigo-600 dark:text-indigo-400"/> TheAlchemist
           </span>
           <div className="w-6"></div>
         </header>
@@ -106,7 +111,7 @@ function App() {
           <Route element={<PrivateLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/projeto/:id" element={<Kanban />} />
-            <Route path="/settings" element={<SettingsPage />} /> {/* ROTA ATUALIZADA */}
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, MoreHorizontal, Clock, AlertCircle, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Plus, MoreHorizontal, Clock, AlertCircle, Sparkles, Trash2, X, Check, Edit2 } from 'lucide-react'; // <--- Adicionei Check e Edit2
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { projectService } from '../services/projectService';
 import CardModal from '../components/CardModal';
@@ -17,9 +17,15 @@ export default function Kanban() {
   const [loading, setLoading] = useState(true);
   
   const [modalData, setModalData] = useState(null);
+  
+  // Estados para Adicionar Nova Coluna
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState('');
+
+  // Estados para EDITAR Coluna (Nome e Cor)
   const [editingColumnId, setEditingColumnId] = useState(null);
+  const [tempColumnTitle, setTempColumnTitle] = useState(''); // <--- Novo estado para o título temporário
+
   const [itemToDelete, setItemToDelete] = useState(null);
 
   useEffect(() => { loadProject(); }, [id]);
@@ -38,6 +44,16 @@ export default function Kanban() {
   function handleOpenEdit(card) { setModalData(card); }
   function requestDelete(e, type, id, title) { e.stopPropagation(); setItemToDelete({ type, id, title }); }
 
+  // Abre o menu de edição da coluna e preenche o título atual
+  function handleOpenColumnMenu(coluna) {
+    if (editingColumnId === coluna.id) {
+        setEditingColumnId(null); // Fecha se já estiver aberto
+    } else {
+        setEditingColumnId(coluna.id);
+        setTempColumnTitle(coluna.titulo); // Preenche o input com o nome atual
+    }
+  }
+
   async function handleAddColumn(e) {
     e.preventDefault();
     if (!newColumnTitle.trim()) return;
@@ -47,6 +63,32 @@ export default function Kanban() {
       setIsAddingColumn(false);
       loadProject();
     } catch (e) { toast.error("Erro ao criar lista."); }
+  }
+
+  // Salva o novo NOME da coluna
+  async function handleSaveColumnTitle(columnId) {
+    if (!tempColumnTitle.trim()) return;
+    
+    // Atualização Otimista (Visual instantâneo)
+    const updatedCols = project.colunas.map(c => c.id === columnId ? {...c, titulo: tempColumnTitle} : c);
+    setProject({...project, colunas: updatedCols});
+    setEditingColumnId(null); // Fecha o menu
+
+    try {
+        await projectService.updateColumn(columnId, { titulo: tempColumnTitle });
+        toast.success("Nome atualizado!");
+    } catch (e) {
+        toast.error("Erro ao salvar nome.");
+        loadProject(); // Reverte em caso de erro
+    }
+  }
+
+  // Salva a nova COR da coluna
+  async function handleChangeColor(columnId, newColor) {
+    const updatedCols = project.colunas.map(c => c.id === columnId ? {...c, cor: newColor} : c);
+    setProject({...project, colunas: updatedCols});
+    // Não fechamos o menu aqui para permitir que ele continue editando o nome se quiser
+    try { await projectService.updateColumn(columnId, { cor: newColor }); } catch (e) { loadProject(); }
   }
 
   async function confirmDelete() {
@@ -65,13 +107,6 @@ export default function Kanban() {
     finally { setItemToDelete(null); }
   }
 
-  async function handleChangeColor(columnId, newColor) {
-    const updatedCols = project.colunas.map(c => c.id === columnId ? {...c, cor: newColor} : c);
-    setProject({...project, colunas: updatedCols});
-    setEditingColumnId(null);
-    try { await projectService.updateColumn(columnId, { cor: newColor }); } catch (e) { loadProject(); }
-  }
-
   function getDeadlineStyle(prazo) {
     if (!prazo) return null;
     const date = new Date(prazo);
@@ -81,14 +116,12 @@ export default function Kanban() {
     return { color: 'text-gray-500', bg: 'bg-gray-200/50', icon: <Clock size={14} />, label: formattedDate };
   }
 
-  // --- DRAG AND DROP (CORRIGIDO COM PREFIXOS) ---
   const onDragEnd = async (result) => {
     const { destination, source, draggableId, type } = result;
 
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-    // Removemos os prefixos 'col-' ou 'card-' para pegar o ID real
     const realDraggableId = parseInt(draggableId.split('-')[1]); 
     
     // 1. REORDENAR COLUNAS
@@ -108,7 +141,6 @@ export default function Kanban() {
     if (type === 'CARD') {
         const newProject = { ...project, colunas: [...project.colunas] };
         
-        // Remove prefixo 'list-' para pegar o ID da coluna
         const sourceColId = parseInt(source.droppableId.split('-')[1]);
         const destColId = parseInt(destination.droppableId.split('-')[1]);
 
@@ -119,10 +151,7 @@ export default function Kanban() {
         const destCol = sourceColIndex === destColIndex ? sourceCol : { ...newProject.colunas[destColIndex], cards: [...newProject.colunas[destColIndex].cards] };
 
         const [movedCard] = sourceCol.cards.splice(source.index, 1);
-        
-        // Atualiza o ID da coluna no objeto local
         movedCard.coluna = destColId;
-        
         destCol.cards.splice(destination.index, 0, movedCard);
 
         newProject.colunas[sourceColIndex] = sourceCol;
@@ -148,7 +177,6 @@ export default function Kanban() {
       </header>
 
       <DragDropContext onDragEnd={onDragEnd}>
-        {/* DROPPABLE DAS COLUNAS */}
         <Droppable droppableId="board" type="COLUMN" direction="horizontal">
           {(provided) => (
             <div 
@@ -159,7 +187,6 @@ export default function Kanban() {
               <div className="flex h-full gap-6">
                 
                 {project?.colunas.map((coluna, index) => (
-                  // PREFIXO 'col-' PARA ID DA COLUNA
                   <Draggable key={coluna.id} draggableId={`col-${coluna.id}`} index={index}>
                     {(provided) => (
                       <div 
@@ -172,7 +199,7 @@ export default function Kanban() {
                         }}
                       >
                         
-                        {/* HANDLE DO DRAG */}
+                        {/* HEADER DA COLUNA (DRAG HANDLE) */}
                         <div 
                             {...provided.dragHandleProps} 
                             className="p-4 flex justify-between items-center relative group/header cursor-grab active:cursor-grabbing"
@@ -180,27 +207,53 @@ export default function Kanban() {
                           <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wider flex items-center gap-2">
                             {coluna.titulo} <span className="bg-black/5 px-2 py-0.5 rounded-full text-[10px]">{coluna.cards.length}</span>
                           </h3>
+                          
                           <div className="flex items-center gap-1">
                              <button onClick={(e) => requestDelete(e, 'column', coluna.id, coluna.titulo)} className="p-1.5 hover:bg-red-100 hover:text-red-500 rounded-full text-gray-400 opacity-0 group-hover/header:opacity-100 transition-all"><Trash2 size={16} /></button>
+                             
                              <div className="relative">
-                                <button onClick={() => setEditingColumnId(editingColumnId === coluna.id ? null : coluna.id)} className="p-1.5 hover:bg-black/5 rounded-full text-gray-500 opacity-0 group-hover/header:opacity-100 transition-all"><MoreHorizontal size={18} /></button>
+                                {/* BOTÃO DE MENU (Abre o Popover) */}
+                                <button onClick={() => handleOpenColumnMenu(coluna)} className="p-1.5 hover:bg-black/5 rounded-full text-gray-500 opacity-0 group-hover/header:opacity-100 transition-all"><MoreHorizontal size={18} /></button>
+                                
+                                {/* --- POPOVER DE EDIÇÃO --- */}
                                 {editingColumnId === coluna.id && (
-                                   <div className="absolute top-8 right-0 bg-white shadow-xl rounded-xl p-2 flex gap-2 z-20 border animate-in zoom-in-95 duration-100 cursor-default" onMouseDown={e => e.stopPropagation()}>
-                                      {PASTEL_COLORS.map(color => <button key={color} onClick={() => handleChangeColor(coluna.id, color)} className="w-6 h-6 rounded-full border hover:scale-110" style={{ backgroundColor: color }} />)}
+                                   <div className="absolute top-8 right-0 bg-white dark:bg-gray-800 shadow-xl rounded-xl p-3 flex flex-col gap-3 z-20 border dark:border-gray-700 animate-in zoom-in-95 duration-100 w-52 cursor-default" onMouseDown={e => e.stopPropagation()}>
+                                      
+                                      {/* 1. INPUT DE NOME */}
+                                      <div className="flex gap-1">
+                                          <input 
+                                            autoFocus
+                                            className="w-full text-sm border dark:border-gray-600 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                                            value={tempColumnTitle}
+                                            onChange={(e) => setTempColumnTitle(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleSaveColumnTitle(coluna.id)}
+                                          />
+                                          <button onClick={() => handleSaveColumnTitle(coluna.id)} className="bg-green-100 text-green-600 hover:bg-green-200 p-1 rounded"><Check size={16}/></button>
+                                      </div>
+
+                                      {/* 2. SELETOR DE CORES */}
+                                      <div className="flex gap-1.5 flex-wrap justify-center">
+                                          {PASTEL_COLORS.map(color => (
+                                              <button 
+                                                key={color} 
+                                                onClick={() => handleChangeColor(coluna.id, color)} 
+                                                className={`w-6 h-6 rounded-full border hover:scale-110 transition-transform ${coluna.cor === color ? 'ring-2 ring-indigo-500 ring-offset-2' : ''}`} 
+                                                style={{ backgroundColor: color }} 
+                                              />
+                                          ))}
+                                      </div>
                                    </div>
                                 )}
                              </div>
                           </div>
                         </div>
 
-                        {/* PREFIXO 'list-' PARA ID DA LISTA DE CARDS */}
                         <Droppable droppableId={`list-${coluna.id}`} type="CARD">
                           {(provided) => (
                             <div ref={provided.innerRef} {...provided.droppableProps} className="flex-1 overflow-y-auto px-3 pb-3 custom-scrollbar min-h-[100px]">
                               {coluna.cards.map((card, index) => {
                                 const deadline = getDeadlineStyle(card.prazo);
                                 return (
-                                  // PREFIXO 'card-' PARA ID DO CARD
                                   <Draggable key={card.id} draggableId={`card-${card.id}`} index={index}>
                                     {(provided) => (
                                       <div 
@@ -233,6 +286,7 @@ export default function Kanban() {
                 
                 {provided.placeholder}
 
+                {/* COLUNA DE ADICIONAR NOVA */}
                 <div className="w-80 shrink-0">
                    {isAddingColumn ? (
                      <form onSubmit={handleAddColumn} className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-lg border border-indigo-100 animate-in fade-in slide-in-from-right-4">
@@ -255,6 +309,7 @@ export default function Kanban() {
         </Droppable>
       </DragDropContext>
 
+      {/* MODAIS */}
       <CardModal 
         isOpen={!!modalData}
         cardData={modalData}

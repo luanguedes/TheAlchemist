@@ -1,8 +1,8 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react';
 import api from '../services/api'; 
-// Removi o 'axios' daqui porque vamos usar só o 'api' que já está configurado
 
-export const AuthContext = createContext();
+// 1. Cria o Contexto (NÃO EXPORTAMOS MAIS ISSO DIRETAMENTE)
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       
       if (token) {
-        // Configura o token nas requisições
+        // Configura o token nas requisições ao recarregar a página
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         // Mantemos o usuário na sessão
@@ -28,8 +28,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-        // CORREÇÃO AQUI: Usamos 'api.post' sem a URL completa.
-        // Ele vai pegar o IP (192.168.137.1) que configuramos no services/api.js
         const response = await api.post('token/', {
           username,
           password
@@ -63,4 +61,13 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+// 2. Hook Personalizado (A MANEIRA CERTA DE USAR)
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
+  }
+  return context;
 };
