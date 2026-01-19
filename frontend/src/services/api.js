@@ -4,7 +4,7 @@ const api = axios.create({
   // AQUI ESTÁ A CORREÇÃO:
   // Ele tenta pegar a URL do Railway (VITE_API_URL). 
   // Se não achar (quando você roda no seu PC), ele usa o localhost.
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api',
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 // O resto continua igual...
