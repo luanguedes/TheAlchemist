@@ -62,7 +62,8 @@ MIDDLEWARE = [
 ]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 ROOT_URLCONF = 'core.urls'
 
@@ -148,7 +149,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://thealchemist-backend.up.railway.app", 
+    "https://thealchemist-backend.up.railway.app", # <--- Confirme se essa é a URL exata do seu backend no Railway
+    "https://thealchemist-backend-production.up.railway.app",         # <--- Adicione variações se tiver dúvida
 ]
 
 # Configuração do Rest Framework
