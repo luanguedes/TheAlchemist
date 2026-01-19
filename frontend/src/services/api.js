@@ -1,21 +1,21 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
+  // AQUI ESTÁ A CORREÇÃO:
+  // Ele tenta pegar a URL do Railway (VITE_API_URL). 
+  // Se não achar (quando você roda no seu PC), ele usa o localhost.
+  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api',
 });
 
-// Adicione este interceptador:
+// O resto continua igual...
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    // Se o erro for 401 (Não autorizado/Token inválido)
     if (error.response && error.response.status === 401) {
-      // Remove o token podre
       localStorage.removeItem('token');
       
-      // Se não estivermos já na tela de login, redireciona
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
