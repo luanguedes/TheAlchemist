@@ -1,14 +1,18 @@
 import os
 import sys
+import django
+from django.core.management import call_command
 
-# Script para exportar dados do SQLite de forma limpa
+# Configura o ambiente Django para o script funcionar
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+django.setup()
+
 def export_data():
-    print("📦 Iniciando exportação do SQLite...")
+    print("📦 Iniciando exportação BLINDADA (UTF-8)...")
     
-    # Nome do arquivo de saída
     output_file = "backup_dados.json"
     
-    # Tabelas para excluir (evita conflitos de ID e dados inúteis)
+    # Tabelas para excluir
     excludes = [
         "contenttypes",
         "auth.permission",
@@ -16,21 +20,20 @@ def export_data():
         "sessions.session",
     ]
     
-    exclude_args = " ".join([f"-e {table}" for table in excludes])
-    
-    # Comando do Django
-    # --natural-foreign e --natural-primary ajudam a manter as relações corretas
-    # --indent 2 deixa o arquivo legível
-    command = f"python manage.py dumpdata --natural-foreign --natural-primary {exclude_args} --indent 2 > {output_file}"
-    
-    print(f"🔄 Executando: {command}")
-    exit_code = os.system(command)
-    
-    if exit_code == 0:
-        print(f"✅ Sucesso! Dados salvos em '{output_file}'")
-        print("Agora você pode fazer commit deste arquivo e subir para o Railway.")
-    else:
-        print("❌ Erro ao exportar dados.")
+    # Abre o arquivo forçando UTF-8
+    with open(output_file, 'w', encoding='utf-8') as f:
+        try:
+            call_command(
+                'dumpdata',
+                exclude=excludes,
+                natural_foreign=True,
+                natural_primary=True,
+                indent=2,
+                stdout=f  # Joga a saída direto no arquivo
+            )
+            print(f"✅ Sucesso! '{output_file}' salvo em UTF-8.")
+        except Exception as e:
+            print(f"❌ Erro: {e}")
 
 if __name__ == "__main__":
     export_data()
