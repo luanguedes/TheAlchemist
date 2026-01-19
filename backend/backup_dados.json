@@ -1,0 +1,225 @@
+[
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$cVBvcyr0l9MZ9st1YnHDqZ$S8P8Nb50gCFD4vjXQHzWkWImcLf+RYg6lLjoVJEbSUU=",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-01-16T10:17:38.551Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1200000$R4qxHbltpY3Wv6fdvxt9OS$gUNmEUGixccCUVrRgYd5PYwpDK7xcR7GtpUL5Owz8ms=",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "celular",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-01-17T23:20:46.216Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "projetos.projeto",
+  "pk": 1,
+  "fields": {
+    "titulo": "TheClinic",
+    "descricao": "Criado via Dashboard",
+    "dono": [
+      "admin"
+    ],
+    "arquivado": false,
+    "criado_em": "2026-01-16T10:19:49.111Z",
+    "membros": []
+  }
+},
+{
+  "model": "projetos.coluna",
+  "pk": 1,
+  "fields": {
+    "projeto": 1,
+    "titulo": "Ideias",
+    "ordem": 0,
+    "cor": "#FEF9C3"
+  }
+},
+{
+  "model": "projetos.coluna",
+  "pk": 2,
+  "fields": {
+    "projeto": 1,
+    "titulo": "Fazendo",
+    "ordem": 2,
+    "cor": "#FEE2E2"
+  }
+},
+{
+  "model": "projetos.coluna",
+  "pk": 3,
+  "fields": {
+    "projeto": 1,
+    "titulo": "Concluído",
+    "ordem": 2,
+    "cor": "#DCFCE7"
+  }
+},
+{
+  "model": "projetos.card",
+  "pk": 3,
+  "fields": {
+    "coluna": 1,
+    "titulo": "Tela de Atendimento de Consultas",
+    "conteudo_original": "Criar tela para realizar o atendimento de consultas, onde posso ver todos os pacientes gerados pela recepcao no mesmo estilo que ja foi criado a tela de recepcao e triagem, com filtros dos pacientes, e com um novo filtro para ver apenas os triados se necessario, mas nao obrigatorio, posso ver todos ao mesmo tempo e iniciar o atendimento em todos que estejam com a situacao Aguardando Atendimento. Assim como na triagem quando eu abrir clicar para iniciar atendimento em um dos pacientes vai abrir uma tela/aba para o atendimento e não apenas um modal, no atendimento quero que apareça primeiramente os dados principais do paciente, nome, data de nascimento, nome da mae, em seguida os dados da triagem e logo apos o atendimento médido em si, atendimento em forma de ficha, onde vai rolando para baixo para aparecer as opcoes, fixo no topo do aba, sempre botoes para direcionar ate a parte especifica da tela, onde ao clicar ele me direciona rolando a pagina para a sessao desejada, por exemplo: Triagem, Anamnese, Precricao, Requisicao de exames, etc.\nQuero que faça uma atendimento completo, com um botao na tela para abrir o historico de atendimento (que vamos implantar na sequencia, por enquanto fazer apenas o botao).\nFaça todos os campos que sao exigidos pelo padrao de prontuario médido do Brasil, na lei mais atual vigente, se faltar algum dado que seja do cadastro do paciente, inclua no model do Paciente tambem, ao final do atendimento deve gerar os arquivos provenientes do atendimento em PDF com um modal com checkbox para selecionar o que eu quero imprimir, e abrir uma view de pdf com todos os arquivos selecionados em sequencia no mesmo pdf (Requisicao de medicamentos, solicitacao de exames, referencia e contra referencia de encaminhamento para outro profissional, ficha de atendimento do paciente com os dados da consulta atual)",
+    "prompt_refinado": "Crie um protótipo de interface de usuário (UI/UX) e especificação funcional detalhada para a \"Tela de Atendimento de Consultas\" de um sistema médico, seguindo as diretrizes abaixo:\n\n**1. Componente Principal: Tela de Gerenciamento de Pacientes para Atendimento**\n\n*   **Objetivo:** Exibir e gerenciar pacientes aguardando atendimento.\n*   **Estilo:** Manter o padrão visual e de interação das telas de \"Recepção\" e \"Triagem\" existentes.\n*   **Listagem de Pacientes:**\n    *   Exibir todos os pacientes gerados pela recepção que estejam com a situação \"Aguardando Atendimento\".\n    *   Possibilidade de visualizar todos os pacientes, independentemente do status de triagem, por padrão.\n*   **Filtros:**\n    *   Incluir todos os filtros padrão de pacientes já presentes nas telas de \"Recepção\" e \"Triagem\".\n    *   Adicionar um novo filtro opcional para exibir \"Apenas Triados\".\n*   **Ação \"Iniciar Atendimento\":**\n    *   Para cada paciente com status \"Aguardando Atendimento\", disponibilizar um botão ou ação clara para \"Iniciar Atendimento\".\n    *   Ao clicar, uma nova aba ou tela completa (não um modal) será aberta para o atendimento médico.\n\n**2. Componente Secundário: Tela de Atendimento Médico**\n\n*   **Abertura:** Abrir em uma nova aba ou tela completa.\n*   **Estrutura da Interface:**\n    *   Design em formato de \"ficha\" médica, com conteúdo rolável verticalmente.\n    *   **Barra de Navegação Fixa (Top Bar):** No topo da aba, conter botões de navegação rápida para as seções da ficha de atendimento (ex: \"Triagem\", \"Anamnese\", \"Prescrição\", \"Requisição de Exames\", etc.). Ao clicar nesses botões, a página deve rolar suavemente para a seção correspondente.\n*   **Seções da Ficha de Atendimento (Ordem de Exibição):**\n    1.  **Dados Principais do Paciente:**\n        *   Nome Completo\n        *   Data de Nascimento\n        *   Nome da Mãe\n        *   *Considerar incluir quaisquer outros dados de identificação do paciente exigidos pelo padrão de prontuário médico brasileiro mais atual, caso não estejam listados aqui ou no modelo de paciente existente.*\n    2.  **Dados da Triagem:**\n        *   Exibir todos os campos e informações coletadas durante o processo de triagem.\n    3.  **Atendimento Médico em Si:**\n        *   Desenvolver todos os campos e seções exigidos pelo padrão de prontuário médico do Brasil, conforme a legislação mais atual vigente (ex: Anamnese, Exame Físico, Diagnóstico, Plano Terapêutico, Evolução, etc.).\n        *   **Botão \"Histórico de Atendimento\":** Incluir um botão visível para \"Abrir Histórico de Atendimento\". Este botão deve ser funcional, mas sua implementação completa (a tela de histórico) é para uma fase posterior.\n\n**3. Integração e Conformidade Legal**\n\n*   **Modelo de Paciente (Data Model):** Revisar e, se necessário, expandir o modelo de dados do paciente para garantir que todos os campos exigidos pela legislação brasileira de prontuário médico estejam presentes.\n\n**4. Fluxo Pós-Atendimento: Geração de Documentos em PDF**\n\n*   **Conclusão do Atendimento:** Ao finalizar o atendimento, apresentar um modal para seleção de documentos.\n*   **Modal de Seleção de Documentos:**\n    *   Exibir uma lista de documentos disponíveis com caixas de seleção (checkboxes).\n    *   Documentos a serem gerados:\n        *   Requisição de Medicamentos (Prescrição)\n        *   Solicitação de Exames\n        *   Referência e Contra Referência (Encaminhamento para outro profissional)\n        *   Ficha de Atendimento do Paciente (com os dados da consulta atual)\n*   **Saída Final:** Após a seleção e confirmação, gerar e abrir uma visualização de um único arquivo PDF contendo todos os documentos selecionados em sequência.",
+    "ordem": 3,
+    "prazo": "2026-01-20T21:30:00Z",
+    "criado_em": "2026-01-17T23:40:26.739Z",
+    "atualizado_em": "2026-01-19T13:44:19.829Z"
+  }
+},
+{
+  "model": "projetos.card",
+  "pk": 13,
+  "fields": {
+    "coluna": 3,
+    "titulo": "Tela de Triagem de consultas",
+    "conteudo_original": "Criar tela para triagem de consultas, onde o profissional responsavel pela triagem de consultas vai poder realizar um pré atendimento ao paciente, informar algum dado relevante sobre o paciente, informar metricas como peso, altura, pressao, etc, fazer o calculo do imc, obesididade entre outros calculos padroes com referencia a essas metricas informadas, ao salvar o paciente vai continuar aguardando o atendimento medico, porem com um indicativo de triagem realizada na lista de pacientes",
+    "prompt_refinado": "Elabore uma especificação detalhada para uma \"Tela de Triagem de Consultas\" destinada a profissionais de saúde, com as seguintes funcionalidades:\n\n1.  **Pré-atendimento:** Um painel ou área para o profissional realizar um pré-atendimento ao paciente, registrando dados relevantes e observações gerais.\n2.  **Registro de Métricas Vitais:** Campos dedicados para inserção de métricas como Peso (kg), Altura (cm) e Pressão Arterial (sistólica/diastólica).\n3.  **Cálculos Automáticos:**\n    *   Cálculo automático do Índice de Massa Corporal (IMC) com base no peso e altura informados.\n    *   Classificação automática do estado de saúde com base no IMC (ex: \"Baixo Peso\", \"Peso Normal\", \"Sobrepeso\", \"Obesidade Grau I, II, III\").\n    *   Realização de outros cálculos padrão relacionados às métricas fornecidas (ex: cálculo de obesidade com base no IMC).\n4.  **Fluxo de Pacientes:** Ao salvar as informações da triagem, o paciente deve permanecer na lista de espera para o atendimento médico, mas com um indicativo visual claro de \"Triagem Realizada\" na lista geral de pacientes.\n\nConsidere a usabilidade da interface, a clareza na apresentação dos resultados dos cálculos e a integração eficiente com um sistema de gestão de pacientes existente. Sugira os principais elementos de UI necessários (campos de entrada, botões de ação, áreas de exibição de resultados e status).",
+    "ordem": 0,
+    "prazo": null,
+    "criado_em": "2026-01-18T15:50:22.211Z",
+    "atualizado_em": "2026-01-19T11:44:36.658Z"
+  }
+},
+{
+  "model": "projetos.card",
+  "pk": 14,
+  "fields": {
+    "coluna": 2,
+    "titulo": "Ajustar layout do status de triagem na recepção",
+    "conteudo_original": "Add uma nova coluna para status da triagem para que nao fique na mesma coluna do status do atendimento, e mudar o label de \"Triagem Realizada\" para apenas \"Realizada\"",
+    "prompt_refinado": null,
+    "ordem": 0,
+    "prazo": null,
+    "criado_em": "2026-01-18T18:26:53.925Z",
+    "atualizado_em": "2026-01-19T14:01:27.857Z"
+  }
+},
+{
+  "model": "projetos.card",
+  "pk": 15,
+  "fields": {
+    "coluna": 1,
+    "titulo": "Historico de Atendimento de Consultas",
+    "conteudo_original": "Implementar tela de historico de atendimento de consultas, onde vai mostrar de forma moderna e organizada o historico do paciente selecionado, esse historico vai aparecer num modal que deve ser criado a parte no projeto, e nao dentro dos arquivos do atendimento, para ficar mais organizado, ele deve trazer uma selecao das datas que o paciente selecionado no atendimento teve consultas realizadas, e ao clicar sobre mostra o atendimento especifico da data, o que foi solicitado e prescrito, etc. deve haver tambem dentro do modal um botao para visualizar o historico completo resumido com as informacoes mais importantes do atendimento, como anamnese, requicoes, etc, isso de todas as datas em ordem cronologica da mais recente pra mais antiga em formato de ficha descendo verticalmente. o modal nao pode ocupar a tela toda, precisa ter todos os botoes visiveis e nao cortar nada. \nprecisa haver uma tela dedicada para o historico tambem, para que consiga ver o historico sem necessariamente ser durante a consulta daquele paciente, a tela vai ficar disponivel no menu da sidebar Atendimento, com o nome Históricos de Consultas, ao clicar vai abrir uma aba ao inves do modal dessa vez, mas com todas as ferramentas solicitadas acima, porem com um campo para selecionar o paciente antes de mostrar as informacoes, é obrigatorio pesquisar o paciente especifico. Integrar o modal no botao Histórico de Atendimento implementado anteriormente na tela de Atendimento de Consultas",
+    "prompt_refinado": null,
+    "ordem": 4,
+    "prazo": null,
+    "criado_em": "2026-01-18T18:57:03.903Z",
+    "atualizado_em": "2026-01-18T18:57:03.903Z"
+  }
+},
+{
+  "model": "projetos.card",
+  "pk": 16,
+  "fields": {
+    "coluna": 1,
+    "titulo": "Integrar whats web",
+    "conteudo_original": "Adcionar ao botao ja existente na navbar de controle de conexao ao whatsapp, a funcionalidade de integrar o chat do whatsweb utilizando o evolution api ja configurado e conectado. ao inves de abrir um modal, agora ele abre uma frame na parte lateral direita que sobrepoe a tela, podendo fechar para utilizar o restante do sistema e voltar nele sempre que clicar no icone de mensagens que ja existe no topo da pagina.",
+    "prompt_refinado": null,
+    "ordem": 6,
+    "prazo": null,
+    "criado_em": "2026-01-19T13:12:36.547Z",
+    "atualizado_em": "2026-01-19T13:12:36.547Z"
+  }
+},
+{
+  "model": "projetos.card",
+  "pk": 19,
+  "fields": {
+    "coluna": 1,
+    "titulo": "Importacao de Tabelas",
+    "conteudo_original": "Tela onde será possivel importar tabelas, como por exemplo tabelas de medicamentos da anvisa, tabelas de exames da sigtap, etc.\nCriar as rotinas de importacao especificas para cada tipo de tabela (Colocar detalhes de cada tabela abaixo).\nIsso ficara no modulo app configuracoes, mas sera importado no atendimento, pois sao os cadastros de exames/medicamentos que serao utilizados no atendimento de consultas, e que ja fizemos em etapas anteriores.",
+    "prompt_refinado": null,
+    "ordem": 5,
+    "prazo": null,
+    "criado_em": "2026-01-19T13:56:09.626Z",
+    "atualizado_em": "2026-01-19T13:56:09.626Z"
+  }
+},
+{
+  "model": "projetos.card",
+  "pk": 20,
+  "fields": {
+    "coluna": 1,
+    "titulo": "Cadastro de Exames",
+    "conteudo_original": "Cadastro de exames",
+    "prompt_refinado": null,
+    "ordem": 1,
+    "prazo": null,
+    "criado_em": "2026-01-19T13:58:25.096Z",
+    "atualizado_em": "2026-01-19T13:58:36.437Z"
+  }
+},
+{
+  "model": "projetos.card",
+  "pk": 21,
+  "fields": {
+    "coluna": 1,
+    "titulo": "Cadastro de Medicamentos",
+    "conteudo_original": "Cadastro de Medicamentos",
+    "prompt_refinado": null,
+    "ordem": 2,
+    "prazo": null,
+    "criado_em": "2026-01-19T13:58:48.248Z",
+    "atualizado_em": "2026-01-19T13:58:48.248Z"
+  }
+},
+{
+  "model": "ai_engine.agenteia",
+  "pk": 1,
+  "fields": {
+    "nome": "Engenheiro de Prompt",
+    "descricao": "Cria scripts detalhados",
+    "prompt_sistema": "Atue como um Engenheiro de Prompt Sênior. Transforme a ideia do usuário em um prompt estruturado e perfeito para LLMs.",
+    "temperatura": 0.8,
+    "criado_em": "2026-01-18T00:07:56.234Z"
+  }
+},
+{
+  "model": "ai_engine.agenteia",
+  "pk": 2,
+  "fields": {
+    "nome": "Arquiteto de Software",
+    "descricao": "Define estrutura técnica",
+    "prompt_sistema": "Atue como Arquiteto de Software. Crie uma especificação técnica (Objetivo, User Story, Critérios de Aceite) para a funcionalidade.",
+    "temperatura": 0.5,
+    "criado_em": "2026-01-18T00:07:56.265Z"
+  }
+},
+{
+  "model": "ai_engine.agenteia",
+  "pk": 3,
+  "fields": {
+    "nome": "Otimizador de Ideias",
+    "descricao": "Sugere melhorias e next steps",
+    "prompt_sistema": "Atue como um Product Manager visionário. Analise a ideia, critique construtivamente e sugira 3 melhorias inovadoras e o próximo passo imediato.",
+    "temperatura": 0.9,
+    "criado_em": "2026-01-18T00:07:56.304Z"
+  }
+}
+]
