@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import { isPast, isToday, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const PASTEL_COLORS = ['#3B82F6', '#F59E0B', '#8B5CF6', '#22C55E', '#EF4444', '#0EA5E9'];
+const PASTEL_COLORS = ['#2563EB', '#16A34A', '#F59E0B', '#EF4444', '#9333EA', '#0EA5E9'];
 const mixHex = (hex, amount, toWhite = true) => {
   const cleaned = hex.replace('#', '');
   const fullHex = cleaned.length === 3
@@ -215,13 +215,13 @@ export default function Kanban() {
                     {(provided) => (
                       (() => {
                         const baseColor = coluna.cor || '#F1F5F9';
-                        const headerColor = mixHex(baseColor, 0.35, false);
-                        const bodyColor = mixHex(baseColor, 0.85, true);
+                        const headerColor = mixHex(baseColor, 0.45, false);
+                        const bodyColor = mixHex(baseColor, 0.65, true);
                         return (
                       <div 
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className="w-80 flex-shrink-0 flex flex-col rounded-2xl transition-colors duration-500 border border-transparent dark:border-gray-800 bg-white"
+                        className="w-80 flex-shrink-0 flex flex-col rounded-2xl transition-colors duration-500 border border-transparent dark:border-gray-800 bg-white self-start h-fit"
                         style={{ 
                             ...provided.draggableProps.style,
                             backgroundColor: bodyColor
@@ -280,7 +280,7 @@ export default function Kanban() {
 
                         <Droppable droppableId={`list-${coluna.id}`} type="CARD">
                           {(provided) => (
-                            <div ref={provided.innerRef} {...provided.droppableProps} className="overflow-y-auto px-3 pb-3 custom-scrollbar min-h-[100px] max-h-[calc(100vh-260px)]">
+                            <div ref={provided.innerRef} {...provided.droppableProps} className="overflow-y-auto px-3 pb-3 custom-scrollbar max-h-[calc(100vh-260px)]">
                               {coluna.cards.map((card, index) => {
                                 const deadline = getDeadlineStyle(card.prazo);
                                 return (
