@@ -10,6 +10,20 @@ import { isPast, isToday, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const PASTEL_COLORS = ['#F1F5F9', '#E0F2FE', '#DCFCE7', '#FAE8FF', '#FEF9C3', '#FEE2E2'];
+const mixHex = (hex, amount, toWhite = true) => {
+  const cleaned = hex.replace('#', '');
+  const fullHex = cleaned.length === 3
+    ? cleaned.split('').map((c) => c + c).join('')
+    : cleaned;
+  const num = parseInt(fullHex, 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  const target = toWhite ? 255 : 0;
+  const mix = (channel) => Math.round(channel + (target - channel) * amount);
+  const toHex = (channel) => mix(channel).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
 
 export default function Kanban() {
   const { id } = useParams();
@@ -199,31 +213,37 @@ export default function Kanban() {
                 {project?.colunas.map((coluna, index) => (
                   <Draggable key={coluna.id} draggableId={`col-${coluna.id}`} index={index}>
                     {(provided) => (
+                      (() => {
+                        const baseColor = coluna.cor || '#F1F5F9';
+                        const headerColor = mixHex(baseColor, 0.35, false);
+                        const bodyColor = mixHex(baseColor, 0.85, true);
+                        return (
                       <div 
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         className="w-80 flex-shrink-0 flex flex-col rounded-2xl max-h-full transition-colors duration-500 border border-transparent dark:border-gray-800 bg-white"
                         style={{ 
                             ...provided.draggableProps.style,
-                            backgroundColor: coluna.cor || '#F1F5F9' 
+                            backgroundColor: bodyColor
                         }}
                       >
                         
                         {/* HEADER DA COLUNA (DRAG HANDLE) */}
                         <div 
                             {...provided.dragHandleProps} 
-                            className="p-4 flex justify-between items-center relative group/header cursor-grab active:cursor-grabbing"
+                            className="p-4 flex justify-between items-center relative group/header cursor-grab active:cursor-grabbing rounded-t-2xl text-white"
+                            style={{ backgroundColor: headerColor }}
                         >
-                          <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wider flex items-center gap-2">
-                            {coluna.titulo} <span className="bg-black/5 px-2 py-0.5 rounded-full text-[10px]">{coluna.cards.length}</span>
+                          <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+                            {coluna.titulo} <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px]">{coluna.cards.length}</span>
                           </h3>
                           
                           <div className="flex items-center gap-1">
-                             <button onClick={(e) => requestDelete(e, 'column', coluna.id, coluna.titulo)} className="p-1.5 hover:bg-red-100 hover:text-red-500 rounded-full text-gray-400 opacity-0 group-hover/header:opacity-100 transition-all"><Trash2 size={16} /></button>
+                             <button onClick={(e) => requestDelete(e, 'column', coluna.id, coluna.titulo)} className="p-1.5 hover:bg-white/20 rounded-full text-white/80 opacity-0 group-hover/header:opacity-100 transition-all"><Trash2 size={16} /></button>
                              
                              <div className="relative">
                                 {/* BOTÃO DE MENU (Abre o Popover) */}
-                                <button onClick={() => handleOpenColumnMenu(coluna)} className="p-1.5 hover:bg-black/5 rounded-full text-gray-500 opacity-0 group-hover/header:opacity-100 transition-all"><MoreHorizontal size={18} /></button>
+                                <button onClick={() => handleOpenColumnMenu(coluna)} className="p-1.5 hover:bg-white/20 rounded-full text-white/80 opacity-0 group-hover/header:opacity-100 transition-all"><MoreHorizontal size={18} /></button>
                                 
                                 {/* --- POPOVER DE EDIÇÃO --- */}
                                 {editingColumnId === coluna.id && (
@@ -290,6 +310,8 @@ export default function Kanban() {
                           )}
                         </Droppable>
                       </div>
+                        );
+                      })()
                     )}
                   </Draggable>
                 ))}
