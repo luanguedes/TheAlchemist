@@ -58,7 +58,8 @@ export default function Kanban() {
     e.preventDefault();
     if (!newColumnTitle.trim()) return;
     try {
-      await projectService.createColumn(id, newColumnTitle);
+      const ordem = project?.colunas?.length ?? 0;
+      await projectService.createColumn(id, newColumnTitle, ordem);
       setNewColumnTitle('');
       setIsAddingColumn(false);
       loadProject();
@@ -129,11 +130,20 @@ export default function Kanban() {
         const newColunas = [...project.colunas];
         const [removed] = newColunas.splice(source.index, 1);
         newColunas.splice(destination.index, 0, removed);
-        setProject({ ...project, colunas: newColunas });
+        const reordered = newColunas.map((coluna, index) => ({
+          ...coluna,
+          ordem: index,
+        }));
+        setProject({ ...project, colunas: reordered });
 
         try {
-            await projectService.updateColumn(realDraggableId, { ordem: destination.index });
-        } catch (e) { toast.error("Erro ao mover coluna"); }
+            await Promise.all(
+              reordered.map((coluna) => projectService.updateColumn(coluna.id, { ordem: coluna.ordem }))
+            );
+        } catch (e) {
+            toast.error("Erro ao mover coluna");
+            loadProject();
+        }
         return;
     }
 

@@ -22,11 +22,15 @@ export const projectService = {
   },
 
   // --- COLUNAS ---
-  createColumn: async (projetoId, titulo) => {
-    const response = await api.post('colunas/', { 
+  createColumn: async (projetoId, titulo, ordem = null) => {
+    const payload = { 
       projeto: projetoId, 
       titulo 
-    });
+    };
+    if (ordem !== null && ordem !== undefined) {
+      payload.ordem = ordem;
+    }
+    const response = await api.post('colunas/', payload);
     return response.data;
   },
 
