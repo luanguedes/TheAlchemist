@@ -221,7 +221,7 @@ export default function Kanban() {
                       <div 
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className="w-80 flex-shrink-0 flex flex-col rounded-2xl max-h-full transition-colors duration-500 border border-transparent dark:border-gray-800 bg-white"
+                        className="w-80 flex-shrink-0 flex flex-col rounded-2xl transition-colors duration-500 border border-transparent dark:border-gray-800 bg-white h-full max-h-[calc(100vh-180px)]"
                         style={{ 
                             ...provided.draggableProps.style,
                             backgroundColor: bodyColor
