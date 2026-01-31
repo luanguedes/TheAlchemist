@@ -280,7 +280,7 @@ export default function Kanban() {
 
                         <Droppable droppableId={`list-${coluna.id}`} type="CARD">
                           {(provided) => (
-                            <div ref={provided.innerRef} {...provided.droppableProps} className="overflow-y-auto px-3 pb-3 custom-scrollbar max-h-[calc(100vh-260px)]">
+                            <div ref={provided.innerRef} {...provided.droppableProps} className="overflow-y-auto px-3 pt-3 pb-3 custom-scrollbar max-h-[calc(100vh-260px)]">
                               {coluna.cards.map((card, index) => {
                                 const deadline = getDeadlineStyle(card.prazo);
                                 return (
